@@ -31,7 +31,7 @@ The data stays outside the repository. Point `FC_DATA_DIR` at a folder containin
 - `raw/fund.csv`
 - `raw/SHARADAR_INDICATORS_a3407c5c2ec46991d2b7ac667785d0d1.csv`
 - `external/sectors_nasdaq_screener.csv`, the sector labels stage 06 scores against (`evaluate.external.file`)
-- `external/sectors_sp500_gics.csv`, needed only by the studies that use GICS sectors
+- `external/sectors_sp500_gics.csv`, needed only for the optional S&P 500 sector check in stage 06 (`--external`)
 
 Set it either as an environment variable, which takes precedence, or in `local.env`. On this machine it is `D:\Python Project\data\fundamental_clustering`. Put downloaded external data (e.g. sector labels) under `<root>/external/` with a provenance note, and reusable caches under `<root>/cache/`.
 

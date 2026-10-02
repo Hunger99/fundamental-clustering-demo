@@ -58,7 +58,7 @@ Settings are in `configs/default.yaml`.
 
 ## Results
 
-The numbers below come from the production run, the baseline runs and four studies kept in the private repository. A separate verification pass with its own code and seeds reproduced each one.
+The numbers below come from the production run, the baseline runs and four closed studies archived in the private repository. A separate verification pass with its own code and seeds reproduced each one.
 
 ### Compressing the tails decides most of the outcome
 
@@ -171,11 +171,6 @@ fundamental-clustering/
 │   └── run_pipeline.ps1                     runs every stage in order
 ├── baselines/                               (private)
 │   └── umap_dbscan/                         the UMAP + DBSCAN comparison method (private)
-├── experiment/                              the four studies behind the settings, with verification code (private)
-│   ├── 20261001--denoising/
-│   ├── 20261001--dimensionality-reduction/
-│   ├── 20261001--clustering/
-│   └── 20261001--metric-audit/
 ├── outputs/                                 (private)
 │   ├── bank/                                the latest verified production run, with the README figures (private)
 │   └── archive/                             earlier runs and audit records, kept local (private)
@@ -248,7 +243,7 @@ Eight problems shaped the method. [docs/challenges.md](docs/challenges.md) gives
 | `scripts/`, `configs/`, `environment_installation/`, `pyproject.toml` | Yes |
 | `docs/challenges.md` and the nine figures in `figures/` | Yes |
 | `src/03_denoise`, `src/04_reduce`, `src/05_cluster`, `src/06_evaluate` (the core methods) | No |
-| `src/08_review` (regression tests), `experiment/` (the four studies), `baselines/umap_dbscan/` | No |
+| `src/08_review` (regression tests), `baselines/umap_dbscan/` | No |
 
 The private stages appear as empty folders under `src/`, so the layout matches the full project. The public stages import the private ones, so this code shows the structure of the pipeline without running on its own. The figures were drawn by `src/07_report` in the production run. The full code is available on request.
 
