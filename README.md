@@ -15,10 +15,15 @@ This project sorts US-listed non-financial companies into five business-model ar
   - [The archetype works as a cheap risk label](#the-archetype-works-as-a-cheap-risk-label)
   - [The 2020 shock moved companies across archetypes](#the-2020-shock-moved-companies-across-archetypes)
 - [Baseline comparison](#baseline-comparison)
-- [Challenges](#challenges)
-- [Limitations](#limitations)
-- [Code availability](#code-availability)
-- [Data source](#data-source)
+- [Repository layout](#repository-layout)
+- [Appendix](#appendix)
+  - [Glossary](#glossary)
+  - [Challenges](#challenges)
+  - [Limitations](#limitations)
+  - [Code availability](#code-availability)
+  - [Data source](#data-source)
+
+Technical terms are defined in the [Glossary](#glossary).
 
 ## How a clustering is judged
 
@@ -136,7 +141,86 @@ The baseline embeds 12 standardized ratios in two dimensions with UMAP and clust
 
 The baseline's clusters carry information beyond sector, yet they do not come back on other companies. Part of the loss comes from the standardization, whose mean and standard deviation shift whenever a subsample gains or loses a few extreme companies.
 
-## Challenges
+## Repository layout
+
+The full project is organised by pipeline stage. Each stage folder under `src/` holds `code/` for the algorithms, `utils/` for its command-line entry point and a README naming its inputs and outputs, and `scripts/` mirrors the same stage numbers.
+
+This demo keeps the same layout. Parts marked (private) are empty or absent here, and the README figures sit in `figures/` instead of `outputs/bank/`; [Code availability](#code-availability) has the details.
+
+```text
+fundamental-clustering/
+├── README.md
+├── pyproject.toml                           pytest settings; the project is not packaged
+├── configs/
+│   └── default.yaml                         production configuration
+├── environment_installation/                requirements, installer, environment check, local.env template
+├── src/                                     one folder per pipeline stage
+│   ├── 00_shared/                           configuration, I/O, logging, run directories, plotting
+│   ├── 01_load_data/                        read the extract, apply the missing-data policy
+│   ├── 02_features/                         14 ratios and data-quality flags
+│   ├── 03_denoise/                          winsorize, asinh, outlier vote (private)
+│   ├── 04_reduce/                           PCA with parallel analysis, UMAP and t-SNE maps (private)
+│   ├── 05_cluster/                          k-means on company profiles (private)
+│   ├── 06_evaluate/                         the two-layer selection rule (private)
+│   ├── 07_report/                           names, figures and the run summary
+│   ├── 08_review/                           regression tests (private)
+│   └── fundclust/                           import layer for the digit-named stage folders
+├── scripts/
+│   ├── 01_load_data/ … 07_report/           one PowerShell launcher per stage
+│   ├── _common.ps1                          shared launcher setup
+│   └── run_pipeline.ps1                     runs every stage in order
+├── baselines/                               (private)
+│   └── umap_dbscan/                         the UMAP + DBSCAN comparison method (private)
+├── experiment/                              the four studies behind the settings, with verification code (private)
+│   ├── 20261001--denoising/
+│   ├── 20261001--dimensionality-reduction/
+│   ├── 20261001--clustering/
+│   └── 20261001--metric-audit/
+├── outputs/                                 (private)
+│   ├── bank/                                the latest verified production run, with the README figures (private)
+│   └── archive/                             earlier runs and audit records, kept local (private)
+└── docs/
+    └── challenges.md                        problems met and how they were solved
+```
+
+## Appendix
+
+### Glossary
+
+| Term | Plain meaning | Source |
+| --- | --- | --- |
+| ADR | American depositary receipt: a US-listed share of a foreign company. Some report their accounts in home currency against a dollar price. | Finance usage |
+| Archetype | A group of companies with a similar business model, found by the clustering. | This project |
+| ARI (adjusted Rand index) | Agreement between two partitions of the same items, corrected for chance: 1 for identical partitions, about 0 for unrelated ones. | Hubert & Arabie (1985) |
+| asinh | The inverse hyperbolic sine, ln(x + √(x² + 1)). It is close to linear near zero and logarithmic in the tails, and unlike log it accepts negative values. | Burbidge, Magee & Robb (1988) |
+| Company profile | A company's median of each denoised ratio over 2016 to 2019. k-means is fitted on these, one per company. | This project |
+| Company-quarter | One company's ratios for one fiscal quarter, which is one row of the data. | This project |
+| DBSCAN | Density-based clustering: points in dense regions form clusters and isolated points are labelled noise. | Ester et al. (1996) |
+| Epsilon squared (ε²) | The effect size of a Kruskal-Wallis test: the share of the variation in ranks that the groups explain, from 0 to 1. | Tomczak & Tomczak (2014) |
+| Gap statistic | A rule that picks the number of clusters K where the within-cluster spread falls furthest below that of reference data with no clusters. | Tibshirani, Walther & Hastie (2001) |
+| IQR (interquartile range) | The distance between the 25th and 75th percentiles. Scaling by median and IQR centres a ratio without being pulled by outliers. | Descriptive statistics |
+| k-means | Assigns each point to the nearest of K centres, moves each centre to the mean of its points, and repeats until nothing changes. | [CS441](https://courses.grainger.illinois.edu/cs441/fa2025/) Lecture 4 |
+| Next-quarter move | The absolute value of a company's log price change over the next quarter minus that quarter's median change across companies, so a market-wide crash adds nothing. | This project |
+| Noise share | The share of rows a density method such as DBSCAN leaves out of every cluster. | Ester et al. (1996) |
+| Outlier vote | A row is flagged when at least two of three detectors (Gaussian-mixture likelihood, PCA reconstruction error and distance to the 15 nearest neighbours) put it in their top 1%. Flagged rows are kept. | [CS441](https://courses.grainger.illinois.edu/cs441/fa2025/) Lecture 11 |
+| Parallel analysis | Keeps the principal components whose variance exceeds the 95th percentile of what the same data give after each column is shuffled independently. | Horn (1965) |
+| Partial R² | The share of the variation in next-quarter moves that the archetype explains after sector, quarter and size-decile dummies (fixed effects) are already in the regression. | Regression analysis |
+| PCA (principal component analysis) | Rotates the ratios into uncorrelated axes ordered by how much variance each explains. Here it runs on the correlation matrix. | [CS441](https://courses.grainger.illinois.edu/cs441/fa2025/) Lecture 5 |
+| Permutation null | The scores obtained after shuffling cluster labels among whole companies, 200 times. A real result has to beat it. The within-sector version shuffles only among companies of the same sector, so beating it means information beyond sector. | This project |
+| Persistence | Agreement (Cohen's kappa) between a company's cluster in one quarter and in the next. | Cohen (1960) |
+| Prediction strength | Split the companies into two halves and cluster each. For each cluster in one half, take the share of its pairs of points that the other half's model also puts together. The paper keeps the weakest cluster; the rule here uses the mean weighted by cluster size. | Tibshirani & Walther (2005) |
+| Scale-free ratio | A ratio of two accounting values, such as debt over assets, in which company size cancels out. | This project |
+| Seed agreement | The mean ARI between fits on the full data that differ only in the random seed. | This project |
+| Separation beyond sector | The mean of the ε² of next-quarter move size and of volatility across clusters, each measured above the within-sector permutation null. Higher means the clusters say more about risk than sector does. | This project |
+| Silhouette | For each point, how much closer it is to its own cluster than to the nearest other one, from -1 to 1, averaged over points. | Rousseeuw (1987) |
+| Stability | The mean ARI between pairs of clusterings refitted on random 80% subsets of the companies, compared on the rows they share, over 10 refits. | This project |
+| StandardScaler | Subtracts each ratio's mean and divides by its standard deviation, giving z-scores. The baseline uses it. | scikit-learn |
+| t-SNE | A nonlinear method that places similar points close together in a 2-D map, used here for viewing only. | van der Maaten & Hinton (2008) |
+| UMAP | A nonlinear method that places similar points close together in a low-dimensional map. The baseline clusters its 2-D map. | McInnes, Healy & Melville (2018) |
+| Volatility | The standard deviation of a company's market-adjusted quarterly price change over its quarters in one cluster. | This project |
+| Winsorize | Clip each ratio at its 1st and 99th percentiles so a few extreme values cannot set the distances. | [CS441](https://courses.grainger.illinois.edu/cs441/fa2025/) Lecture 11 |
+
+### Challenges
 
 Eight problems shaped the method. [docs/challenges.md](docs/challenges.md) gives the evidence and the fix for each.
 
@@ -149,14 +233,14 @@ Eight problems shaped the method. [docs/challenges.md](docs/challenges.md) gives
 - [Seeded UMAP that changed with the thread count](docs/challenges.md#seeded-umap-that-changed-with-the-thread-count): UMAP runs on one thread, and a regression test checks bitwise equality.
 - [Keeping the return check honest](docs/challenges.md#keeping-the-return-check-honest): moves are measured against the quarter's market median, repeated on the post-filing window and controlled for size.
 
-## Limitations
+### Limitations
 
 - Financial firms are excluded by the missing-data filter.
 - Prices are split-adjusted without dividends, and delisted companies, more often loss-making, drop out of the forward returns, so the risk gaps are probably understated.
 - Sector labels are current listings: 348 companies have none, and a reused ticker can carry another company's sector.
 - The 2016 to 2019 fit window and the selection thresholds were chosen on this dataset; K = 5 holds for prediction-strength thresholds from 0.75 to 0.85.
 
-## Code availability
+### Code availability
 
 | Part | Public here |
 | --- | --- |
@@ -168,6 +252,6 @@ Eight problems shaped the method. [docs/challenges.md](docs/challenges.md) gives
 
 The private stages appear as empty folders under `src/`, so the layout matches the full project. The public stages import the private ones, so this code shows the structure of the pipeline without running on its own. The figures were drawn by `src/07_report` in the production run. The full code is available on request.
 
-## Data source
+### Data source
 
 The quarterly fundamentals extract (`fund.csv`) and the SHARADAR indicator definitions come from the public repository [Jasone818/clustering-the-stock-market](https://github.com/Jasone818/clustering-the-stock-market), which clustered stocks with UMAP and DBSCAN; that method is this project's baseline. The figures are SHARADAR Core US Fundamentals from Nasdaq Data Link, whose terms of use govern redistribution, so the data stay outside this repository.
