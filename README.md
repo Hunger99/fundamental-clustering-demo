@@ -4,6 +4,22 @@
 
 This project sorts US-listed non-financial companies into five business-model archetypes using 14 accounting ratios. The data are SHARADAR quarterly fundamentals for 2016Q1 to 2020Q3: 25,130 company-quarters of 1,474 companies. The archetypes come back when the model is refit on companies it has not seen (stability 0.936, against 0.330 to 0.412 for a UMAP + DBSCAN baseline). They also anticipate the size of a company's next-quarter price move beyond its sector, quarter and size. The methods are inspired by the [UIUC CS441 Applied Machine Learning (Fall 2025)](https://courses.grainger.illinois.edu/cs441/fa2025/) lectures on denoising, dimensionality reduction and clustering.
 
+## Contents
+
+- [How a clustering is judged](#how-a-clustering-is-judged)
+- [Pipeline](#pipeline)
+- [Results](#results)
+  - [Compressing the tails decides most of the outcome](#compressing-the-tails-decides-most-of-the-outcome)
+  - [Four axes describe the ratios](#four-axes-describe-the-ratios)
+  - [Five archetypes reproduce on unseen companies](#five-archetypes-reproduce-on-unseen-companies)
+  - [The archetype works as a cheap risk label](#the-archetype-works-as-a-cheap-risk-label)
+  - [The 2020 shock moved companies across archetypes](#the-2020-shock-moved-companies-across-archetypes)
+- [Baseline comparison](#baseline-comparison)
+- [Challenges](#challenges)
+- [Limitations](#limitations)
+- [Code availability](#code-availability)
+- [Data source](#data-source)
+
 ## How a clustering is judged
 
 A company reports about 19 quarters that look almost the same, so the 25,130 rows carry roughly as much information as 1,900 independent ones. Row-level tests ignore this and called random company labels significant 49% to 95% of the time. Every test, resample and permutation here therefore treats one company as one unit.
