@@ -1,0 +1,16 @@
+# Direct dependencies. Lower bounds are the release lines this code is written against (pandas 3
+# string dtype and copy-on-write, xgboost 3 label rules, numpy 2); the exact tested versions are
+# pinned in requirements.lock.txt, which install.ps1 uses.
+numpy>=2.0
+pandas>=3.0
+pyarrow>=17.0
+scipy>=1.13
+scikit-learn>=1.6
+umap-learn>=0.5.7
+xgboost>=3.0
+matplotlib>=3.9
+seaborn>=0.13
+plotly>=6.0
+pyyaml>=6.0
+tqdm>=4.66
+pytest>=8.0

@@ -1,0 +1,158 @@
+# Production configuration. Variants hold only the keys they change and are deep-merged over this file
+# (src/00_shared/code/config.py). Machine paths never go here: the data root comes from FC_DATA_DIR.
+# Numbers quoted in comments were measured on the 25,130-row panel on 2026-10-01; each stage README names
+# the run directories they come from.
+
+data:
+  # Run directory names use this id: outputs/archive/runs/<config>--<dataset_id>--<UTC>/
+  dataset_id: sharadar_sf1_2016q1-2020q3
+  fund_file: fund.csv
+  indicators_file: SHARADAR_INDICATORS_a3407c5c2ec46991d2b7ac667785d0d1.csv
+  # 2020Q4 is dropped: only 44 of ~1,900 companies had reported it when the data was pulled.
+  drop_calendardates: ["2020-12-31"]
+
+missing:
+  # all_columns      = drop rows with a NaN in ANY raw column (also the baseline's policy; leaves 25,130 rows)
+  # feature_columns  = drop rows with a NaN only in the raw columns the selected feature set needs
+  # none             = keep every row; non-finite features stay NaN for later stages to handle
+  # all_columns and feature_columns differ by one row for fundamental_v2 (25,130 vs 25,131), because both
+  # feature sets need the classified balance sheet that banks and insurers do not report.
+  policy: all_columns
+  # Known banks / insurers / REITs used to test whether the NaN filter removes financial firms.
+  financial_probe_tickers: [JPM, BAC, WFC, C, GS, MS, USB, PNC, AIG, MET, PRU, ALL, TRV, BRK.B, SPG, PLD, AMT]
+
+features:
+  # baseline12     = the 12 ratios of the UMAP + DBSCAN baseline (baselines/umap_dbscan/)
+  # fundamental_v2 = 14 scale-free ratios, see src/02_features/README.md. Chosen because baseline12 mixes
+  #                  per-share levels and duplicates (ros vs netmargin Pearson 0.974) and its top 1% of rows
+  #                  hold 80% of the standardized sum of squares, against 59% for fundamental_v2.
+  set: fundamental_v2
+  # Optional size feature for fundamental_v2 (log market cap); off so clusters describe business profile,
+  # not company size.
+  include_size: false
+
+seeds:
+  # 55 is also the seed of the baseline's primary run, so both compared clusterings start from the same
+  # number; every stochastic step reads its seed from here.
+  global: 55
+
+denoise:
+  # Winsorize at 1%/99%, asinh of the median/IQR-scaled values, median/IQR scaling. Tail compression is the
+  # step that matters: the top 1% of rows hold 9.5% of the sum of squares after it, 59% under StandardScaler.
+  preset: winsor_asinh_robust
+  # No trailing moving median: it made 11 of 14 ratios a worse estimate of next quarter (roa error x2.0).
+  moving_median: null
+  # Undefined ratios (operating margin with revenue <= 0: 51 rows) get the fitted column median.
+  impute: median
+  outliers:
+    # Three CS441 L11 detectors, top 1% each, a row is an outlier with >= 2 votes (188 rows flagged).
+    detectors: [gmm, pca, knn]
+    contamination: 0.01
+    combine: vote
+    min_votes: 2
+    # flag keeps every row in X: dropping the flagged ~1% changed stability by 0.007 and sector NMI z by 1.7,
+    # and the flagged rows are recognisable business states (pre-revenue biotechs, holding companies).
+    policy: flag
+    gmm_components: 10
+    pca_components: 0.9
+    knn_k: 15
+  # No PCA truncation: it, smoothing and outlier removal each moved stability by <= 0.03 (sector NMI z <= 0.9).
+  pca_truncate: null
+
+reduce:
+  n_jobs: 8
+  pca:
+    # Correlation PCA: the robust scaler leaves column variances from 0.44 to 2.12, and covariance PCA then
+    # keeps r = 1 where correlation PCA keeps r = 4.
+    standardize: true
+    # Horn's parallel analysis with a column-permutation null, 95th percentile: r = 4 for 3 permutation
+    # seeds, every year 2016-2020 and 100 of 100 company bootstraps.
+    parallel_iter: 100
+    parallel_quantile: 0.95
+    variance_targets: [0.8, 0.9, 0.95]
+    keep: parallel
+    # Profile firms at score percentiles: PC1 spans -4.77 to +2.39 sd, so a +3 sd firm would not exist.
+    profile_quantiles: [0.01, 0.10, 0.50, 0.90, 0.99]
+  embeddings:
+    # 2-D maps for display only; nothing downstream clusters on them. UMAP and t-SNE keep neighbourhoods best
+    # among 2-D maps (trustworthiness@10 0.934 and 0.963 against 0.811 for PC1-PC2, 3,000-row quality sample).
+    methods: [umap, tsne]
+    # Euclidean beat the correlation metric at n_neighbors 12, 30 and 100 (trust@10 +0.009 to +0.021);
+    # 30 neighbours reach past the 19 quarters one company contributes.
+    umap: {n_neighbors: 30, min_dist: 0.1, metric: euclidean}
+    # All 14 columns: t-SNE on the 4 retained PCs lost trustworthiness (0.950 vs 0.982 at k = 10).
+    tsne: {perplexity: 30, pca_components: null}
+  # 600 companies x 5 quarters, so long-lived companies do not dominate the neighbour metrics.
+  quality: {sample_rows: 3000, rows_per_ticker: 5, ks: [10, 30], distance_rows: 1000}
+
+cluster:
+  # The 14 denoised ratios, not the PC scores: on the 4-PC space k-means reproduces only at K = 6 and
+  # separates next-quarter moves less well beyond sector (economic excess 0.190 vs 0.222; ARI 0.54).
+  input: 03_denoise/X.parquet
+  algorithm: kmeans
+  # K = 5 is the only algorithm/K/unit of 151 candidates that reproduces on unseen companies in all 3 seeds
+  # (stability >= 0.930, prediction strength >= 0.853, largest cluster 36%).
+  k: 5
+  params: {}
+  # One median profile per company, so every company weighs the same instead of up to 19 quarters.
+  unit: profile
+  # Each quarter is labelled from its own ratios, so a company can change archetype (2020 migrations).
+  assign: predict
+  # Companies with fewer than 4 quarters in the window are labelled but not fitted (1,384 of 1,474 fitted).
+  min_rows: 4
+  # Archetypes fixed on 2016-2019, so the 2020 shock is measured against pre-shock reference points.
+  fit_window: ["2016-01-01", "2019-12-31"]
+  seed: null
+  selection:
+    # K was chosen in the clustering study; the RMSE / BIC / Ward curves are diagnostics, off in production.
+    enabled: false
+    ks: [2, 3, 4, 5, 6, 7, 8, 9, 10, 12]
+    gmm_covariance: [diag, full]
+    val_frac: 0.3
+    ward_max_points: 8000
+
+evaluate:
+  # Defaults of src/06_evaluate/utils/cli.py, written out so a run's provenance snapshot shows them.
+  # With every block on, evaluating one 25,130-row clustering took 42 s on 8 threads.
+  blocks: null
+  stability_rounds: 10
+  stability_frac: 0.8
+  ps_rounds: 5
+  n_seeds: 5
+  n_boot: 1000
+  # null = exact silhouette up to 30,000 points (the whole 25,130-row panel).
+  silhouette_sample_size: null
+  profile_unit: ticker
+  # Quadratic-memory refits (Ward) fit on at most this many rows and assign the rest by kNN.
+  max_fit_rows: 8000
+  learn_classifier: hgb
+  # The two blocks the selection rule reads: ticker-level permutation nulls for sector agreement and
+  # sector-adjusted economic separation, and the company-identity diagnostics.
+  extra_blocks: [calibration, pseudoreplication]
+  # 200 permutations resolve p to 1/201; three permutation seeds moved the audit's z-scores by at most 3.7.
+  n_perm: 200
+  neighbor_k: 10
+  one_per_ticker_reps: 20
+  external:
+    # Relative to FC_DATA_DIR; see <FC_DATA_DIR>/external/PROVENANCE.md. Nasdaq screener sectors cover
+    # 1,126 of the 1,474 kept tickers (current listings only, so delisted names are missing).
+    file: external/sectors_nasdaq_screener.csv
+    key: ticker
+    col: sector
+
+report:
+  # Fixed before any path was drawn; a ticker absent from the clustered panel is skipped and named.
+  trajectory_tickers: [AAPL, MSFT, TSLA, BA, NFLX, AMZN, WMT, PG, JNJ, KO, XOM, DAL, MAR, CCL, ZM]
+  highlight_quarter: "2020-06-30"
+  # Base rate for archetype migrations: every quarter-to-quarter move before 2020 (2016Q2-2019Q4).
+  migration_base: ["2016-04-01", "2019-12-31"]
+  # 2,000 company bootstraps: the 2.5th and 97.5th percentiles then rest on 50 draws each.
+  n_boot: 2000
+  # Density views clipped to the 0.5th-99.5th score percentiles so the bulk of the panel stays visible.
+  map_clip: 0.005
+  profile_features: 4
+  seed: null
+
+pipeline:
+  # Executed in order by scripts/run_pipeline.ps1; listing a stage without src/<stage>/utils/cli.py is an error.
+  stages: [01_load_data, 02_features, 03_denoise, 04_reduce, 05_cluster, 06_evaluate, 07_report]

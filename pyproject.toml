@@ -1,0 +1,11 @@
+# Root metadata exists only because pytest reads its configuration from here; the project is not packaged.
+# Stage directories start with digits, so src/ is put on sys.path and code imports them via src/fundclust.
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["src/08_review/tests"]
+addopts = "-ra"
+cache_dir = "environment_installation/.cache/pytest"
+markers = [
+    "real_data: needs the external data root (FC_DATA_DIR) and is skipped when it is unavailable",
+]

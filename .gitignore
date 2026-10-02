@@ -1,0 +1,23 @@
+# Data lives outside the repository (FC_DATA_DIR); an in-repo data/ folder is never tracked.
+/data/
+/outputs/
+
+# Machine settings, credentials and installed environments.
+/environment_installation/local.env*
+!/environment_installation/local.env.example
+/environment_installation/.venv/
+/environment_installation/.cache/
+.env
+.env.*
+*.pem
+*.key
+
+# Language and tool caches.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+*.log
+*.pid
