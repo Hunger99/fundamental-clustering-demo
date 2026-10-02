@@ -2,7 +2,7 @@
 
 > This repository is a demo version of a private project. It holds the write-up, the figures and part of the code. The core stages (denoising, dimensionality reduction, clustering and evaluation), the studies and the regression tests stay private, so the pipeline does not run from here. [Code availability](#code-availability) lists what is included.
 
-This project sorts US-listed non-financial companies into five business-model archetypes using 14 accounting ratios. The data are SHARADAR quarterly fundamentals for 2016Q1 to 2020Q3: 25,130 company-quarters of 1,474 companies. The archetypes come back when the model is refit on companies it has not seen (stability 0.936, against 0.330 to 0.412 for a UMAP + DBSCAN baseline). They also anticipate the size of a company's next-quarter price move beyond its sector, quarter and size. The methods come from the UIUC CS441 (Fall 2025) lectures on denoising, dimensionality reduction and clustering.
+This project sorts US-listed non-financial companies into five business-model archetypes using 14 accounting ratios. The data are SHARADAR quarterly fundamentals for 2016Q1 to 2020Q3: 25,130 company-quarters of 1,474 companies. The archetypes come back when the model is refit on companies it has not seen (stability 0.936, against 0.330 to 0.412 for a UMAP + DBSCAN baseline). They also anticipate the size of a company's next-quarter price move beyond its sector, quarter and size. The methods are inspired by the [UIUC CS441 Applied Machine Learning (Fall 2025)](https://courses.grainger.illinois.edu/cs441/fa2025/) lectures on denoising, dimensionality reduction and clustering.
 
 ## How a clustering is judged
 
