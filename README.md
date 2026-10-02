@@ -150,7 +150,7 @@ Eight problems shaped the method. [docs/challenges.md](docs/challenges.md) gives
 | `src/03_denoise`, `src/04_reduce`, `src/05_cluster`, `src/06_evaluate` (the core methods) | No |
 | `src/08_review` (regression tests), `experiment/` (the four studies), `baselines/umap_dbscan/` | No |
 
-The public stages import the private ones, so this code shows the structure of the pipeline without running on its own. The figures were drawn by `src/07_report` in the production run. The full code is available on request.
+The private stages appear as empty folders under `src/`, so the layout matches the full project. The public stages import the private ones, so this code shows the structure of the pipeline without running on its own. The figures were drawn by `src/07_report` in the production run. The full code is available on request.
 
 ## Data source
 
