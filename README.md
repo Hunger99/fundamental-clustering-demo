@@ -11,7 +11,7 @@ This project sorts US-listed non-financial companies into five business-model ar
 - [Results](#results)
   - [Compressing the tails decides most of the outcome](#compressing-the-tails-decides-most-of-the-outcome)
   - [Four axes describe the ratios](#four-axes-describe-the-ratios)
-  - [Five archetypes reproduce on unseen companies](#five-archetypes-reproduce-on-unseen-companies)
+  - [⭐ Five archetypes reproduce on unseen companies](#-five-archetypes-reproduce-on-unseen-companies)
   - [The archetype works as a cheap risk label](#the-archetype-works-as-a-cheap-risk-label)
   - [The 2020 shock moved companies across archetypes](#the-2020-shock-moved-companies-across-archetypes)
 - [Baseline comparison](#baseline-comparison)
@@ -84,7 +84,7 @@ Each axis in ratio units for a company at the 1st, 10th, 50th, 90th and 99th per
 
 All company-quarters on the first two axes, with the archetype centroids and each sector's median company.
 
-### Five archetypes reproduce on unseen companies
+### ⭐ Five archetypes reproduce on unseen companies
 
 The data have no natural number of clusters (the gap statistic picks K = 2), so reproducibility sets K. Size-weighted prediction strength is 0.89, 0.87 and 0.77 at K = 4, 5 and 6, and K = 4 puts 55% of the rows in one cluster. Of 151 candidates (k-means, bisecting k-means, Ward, Gaussian mixtures, DBSCAN and HDBSCAN), only k-means with K = 5 on company profiles passes both layers in every seed.
 
